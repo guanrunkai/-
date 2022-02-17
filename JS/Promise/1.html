@@ -1,37 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-   
-  <script>
-     class Promise {
-         
-         constructor(executor){
-            
-          const resolve = ()=>{
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      class Promise {
+        constructor(executor) {
+          this.state = "pending";
+          this.value = null;
+          this.reason = null;
+          const resolve = (value) => {
+            if (this.state === "pending") {
+              this.state = "fulfilled";
+              console.log("resolve");
+              this.value = value;
+            }
+          };
 
-            console.log('resolve');
-          }
+          const reject = (reason) => {
+            if (this.state === "pending") {
+              this.state = "rejected";
+              console.log("rejected");
+              this.reason = reason;
+            }
+          };
 
-          const rejected = ()=>{
-            console.log('rejected');
-          }
+          executor(resolve, reject);
+        }
+      }
 
-          executor(resolve,rejected)
-         }
-     }
-
-     const p = new Promise((resolve,rejected)=>{
-           
-          resolve()
-          rejected()
-     })
-
-  </script>
-</body>
+      const p = new Promise((resolve, reject) => {
+        resolve();
+        reject();
+      });
+    </script>
+  </body>
 </html>
