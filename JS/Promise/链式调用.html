@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      class Promise {
+        constructor(executor) {
+          this.state = "pending";
+          this.value = null;
+          this.reason = null;
+          this.onFulfilledCallbacks = [];
+          this.onRejectedCallbacks = [];
+          const resolve = (value) => {
+            if (this.state === "pending") {
+              this.state = "fulfilled";
+              this.value = value;
+              this.onFulfilledCallbacks.forEach((fn) => fn());
+            }
+          };
+
+          const reject = (reason) => {
+            if (this.state === "pending") {
+              this.state = "rejected";
+              this.reason = reason;
+              this.onRejectedCallbacks.forEach((fn) => fn());
+            }
+          };
+
+          executor(resolve, reject);
+        }
+
+        then(onFulfilled, onRejected) {
+          let promise2 = new Promise((resolve, reject) => {
+            if (this.state === "fulfilled") {
+              //处理循环引用
+              setTimeout(() => {
+                let x = onFulfilled(this.value);
+                handleResolve(promise2, x, resolve, reject);
+              }, 0);
+            }
+
+            if (this.state === "rejected") {
+              onRejected(this.reason);
+            }
+
+            if (this.state === "pending") {
+              this.onFulfilledCallbacks.push(() => onFulfilled(this.value));
+
+              this.onRejectedCallbacks.push(() => onRejected(this.reason));
+            }
+          });
+          return promise2;
+        }
+      }
+
+      const handleResolve = (promise2, x, resolve, reject) => {
+        if (promise2 === x) {
+          return reject("err");
+        }
+
+        if (x instanceof Promise) {
+          x.then(resolve, reject);
+        } else {
+          resolve(x);
+        }
+      };
+
+      const p = new Promise((resolve, reject) => {
+        resolve(123);
+      });
+
+      let p2 = p.then((res) => {
+        console.log(res);
+        return p2;
+      });
+
+      p2.then(
+        () => {},
+        (err) => {
+          console.log(err);
+        }
+      );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      class Promise {
+        constructor(executor) {
+          this.state = "pending";
+          this.value = null;
+          this.reason = null;
+          this.onFulfilledCallbacks = [];
+          this.onRejectedCallbacks = [];
+          const resolve = (value) => {
+            if (this.state === "pending") {
+              this.state = "fulfilled";
+              this.value = value;
+              this.onFulfilledCallbacks.forEach((fn) => fn());
+            }
+          };
+
+          const reject = (reason) => {
+            if (this.state === "pending") {
+              this.state = "rejected";
+              this.reason = reason;
+              this.onRejectedCallbacks.forEach((fn) => fn());
+            }
+          };
+
+          executor(resolve, reject);
+        }
+
+        then(onFulfilled, onRejected) {
+          let promise2 = new Promise((resolve, reject) => {
+            if (this.state === "fulfilled") {
+              //处理循环引用
+              setTimeout(() => {
+                let x = onFulfilled(this.value);
+                handleResolve(promise2, x, resolve, reject);
+              }, 0);
+            }
+
+            if (this.state === "rejected") {
+              onRejected(this.reason);
+            }
+
+            if (this.state === "pending") {
+              this.onFulfilledCallbacks.push(() => onFulfilled(this.value));
+
+              this.onRejectedCallbacks.push(() => onRejected(this.reason));
+            }
+          });
+          return promise2;
+        }
+      }
+
+      const handleResolve = (promise2, x, resolve, reject) => {
+        if (promise2 === x) {
+          return reject("err");
+        }
+
+        if (x instanceof Promise) {
+          x.then(resolve, reject);
+        } else {
+          resolve(x);
+        }
+      };
+      // race 多个调用 看谁先调用
+      // 竞速原则
+
+      let p1 = new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(100);
+        }, 1000);
+      });
+
+      let p2 = new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(200);
+        }, 2000);
+      });
+
+      let p3 = new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve(300);
+        }, 3000);
+      });
+
+      Promise.race = function (promises) {
+        return new Promise((resolve, reject) => {
+          for (let i = 0; i < promises.length; i++) {
+            promises[i].then(resolve, reject);
+          }
+        });
+      };
+
+      Promise.race([p1, p2, p2]).then((value) => {
+        console.log(value);
+      });
+
+      Promise.all = function (promises) {
+        let arr = [];
+        let j = 0;
+
+        const handleResolveData = (index, data, resolve) => {
+          arr[index] = data;
+          j++;
+          console.log(j);
+          if (j === promises.length) {
+            resolve(arr);
+          }
+        };
+
+        return new Promise((resolve, reject) => {
+          for (let i = 0; i < promises.length; i++) {
+            promises[i].then((data) => {
+              handleResolveData(i, data, resolve);
+            });
+          }
+        });
+      };
+
+      Promise.all([p1, p2, p3]).then((res) => console.log(res));
+    </script>
+  </body>
+</html>
